@@ -158,6 +158,25 @@ function return_result($result)
     exit;
 }
 
+function show_result($result , $url = '/')
+{
+    if(isset($result['error_no']) && isset($result['error_msg']))
+    {
+        echo '<script>
+        alert("异常代码: ' . $result['error_no']. ' \n异常信息 ' . $result['error_msg'] . '");
+        </script>';
+    }
+    else
+    {
+       echo '<script>
+       alert(" ' .$result.'");
+        </script>';
+    }
+    echo '<script>location.href="' .$url. '"</script>';
+    exit();
+}
+
+
 /**
  * @name getClientIp
  * @desc 获得客户端ip

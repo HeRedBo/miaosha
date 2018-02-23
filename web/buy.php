@@ -25,7 +25,6 @@ if('buy_num' == $action)
 }
 $client_ip = getClientIp();
 
-
 /**
  * 1 校验用户是否登录
  */
@@ -35,7 +34,7 @@ if(!$login_user_info || !$login_user_info['uid'])
         'error_no' => '101',
         'error_msg' => '登录之后才可以参与'
     ];
-    return_result($result);
+    show_result($result);
 }
 $uid       =  $login_user_info['uid'];
 $user_name =  $login_user_info['username'];
@@ -49,7 +48,7 @@ if(!$active_id || !$goods_id || !$goods_num || !$question_sign)
         'error_no' => '102',
         'error_msg' => '参数提交错误'
     ];
-    return_result($result);
+    show_result($result);
 }
 
 /**
@@ -74,7 +73,7 @@ if(!$status_check)
         'error_no' => '103',
         'error_msg' => '用户校验值校验没有通过'
     ];
-    return_result($result);
+    show_result($result);
 }
 
 // 3.2 校验问答信息是否正确
@@ -100,21 +99,11 @@ if(!$question_check)
         'error_no' => '103',
         'error_msg' => '问答校验没有通过'
     ];
-    return_result($result);
+    show_result($result);
 }
 
 // 统一格式化单商品 组合商品的数据结构
-$nums = $goods = [];
-if('buy_cart' == $action)
-{
-    $nums = [$goods_num];
-    $goods = $_POST['goods'];
-}
-else
-{
-    $num = $_POST['num'];
-    $goods = $_POST['goods'];
-}
+
 
 
 /**
@@ -128,8 +117,40 @@ if($trade_info)
         'error_no' => '104',
         'error_msg' => '请不要重复提交订单'
     ];
-    return_result($result);
+    show_result($result);
 }
+
+/**
+ *  5、校验活活动信息 商品信息是否正常
+ */
+$active_model = new \model\Active();
+$active_info = $active_model->get($active_id);
+if(
+    !$active_info || $active_info['sys_status'] !== 1
+    || $active_info['time_begin'] > $now
+    || $active_info['time_end'] < $now
+)
+{
+    $result = [
+        'error_no' => '105',
+        'error_msg' => '活动信息异常'
+    ];
+    show_result($result);
+}
+
+$nums = $goods = [];
+if('buy_cart' == $action)
+{
+    $nums = [$goods_num];
+    $goods = $_POST['goods'];
+}
+else
+{
+    $num = $_POST['num'];
+    $goods = $_POST['goods'];
+}
+
+
 
 
 
