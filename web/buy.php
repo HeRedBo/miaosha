@@ -103,9 +103,6 @@ if(!$question_check)
 }
 
 // 统一格式化单商品 组合商品的数据结构
-
-
-
 /**
  * 4 校验用户是否已经购买
  */
@@ -125,8 +122,9 @@ if($trade_info)
  */
 $active_model = new \model\Active();
 $active_info = $active_model->get($active_id);
+
 if(
-    !$active_info || $active_info['sys_status'] !== 1
+    !$active_info || $active_info['sys_status'] !== '1'
     || $active_info['time_begin'] > $now
     || $active_info['time_end'] < $now
 )
@@ -138,17 +136,99 @@ if(
     show_result($result);
 }
 
-$nums = $goods = [];
-if('buy_cart' == $action)
+//$nums = $goods = [];
+//if('buy_cart' == $action)
+//{
+//    $nums = [$goods_num];
+//    $goods = $_POST['goods'];
+//}
+//else
+//{
+//    $num = $_POST['num'];
+//    $goods = $_POST['goods'];
+//}
+
+$num_total = $price_total = $price_discount = 0;
+$trade_goods = [];
+$goods_model = new \model\Goods();
+$goods_info  = $goods_model->get($goods_id);
+// 6、商品信息校验 状态校验
+if(!$goods_info || $goods_info['sys_status'] !== '1')
 {
-    $nums = [$goods_num];
-    $goods = $_POST['goods'];
+    $result = [
+        'error_no' => '106',
+        'error_msg' => '商品信息异常'
+    ];
+    show_result($result);
 }
-else
+// 7、商品购买数量限制
+if($goods_num > $goods_info['num_user'])
 {
-    $num = $_POST['num'];
-    $goods = $_POST['goods'];
+    $result = [
+        'error_no' => '107',
+        'error_msg' => '超过商品数量的限制'
+    ];
+    show_result($result);
 }
+// 8、商品剩余判断
+if($goods_info['num_left'] < $goods_num)
+{
+    $result = [
+        'error_no' => '108',
+        'error_msg' => '商品库存不足'
+    ];
+    show_result($result);
+}
+// 9、减库存
+$ok = false;
+$ok = $goods_model->changeLeftNum($goods_id, $goods_num);
+if(!$ok)
+{
+    $result = array('error_no' => '109', 'error_msg' => '商品剩余数量不足');
+    show_result($result);
+}
+
+// 10.1 创建订单信息
+$trade_goods[] = [
+    'goods_info' => $goods_info,
+    'goods_num'  => $goods_num
+];
+$num_total      = $goods_num;
+$price_total    = $goods_info['price_normal'] * $goods_num;
+$price_discount = $goods_info['price_discount'] * $goods_num;
+
+// 10.2 保存订单信息
+$trade_info = [
+    'active_id' => $active_id,
+    'goods_id' => $goods_id,
+    'num_total' => $num_total,
+    'num_goods' => count($goods_info),
+    'price_total' => $price_total,
+    'price_discount' => $price_discount,
+    'goods_info' =>  json_encode($trade_goods),
+    'uid' => $uid,
+    'username' => $user_name,
+    'sys_dateline' => $now,
+    'time_confirm' => $now,
+    'sys_status' => 1,
+    'sys_ip' => $client_ip,
+];
+
+foreach ($trade_info as $k => $v)
+{
+    $trade_model-> $k  = $v;
+}
+$trade_id = $trade_model->create();
+// 11 返回提示信息
+$result = '秒杀成功，请尽快去支付';
+show_result($result);
+
+
+
+
+
+
+
 
 
 

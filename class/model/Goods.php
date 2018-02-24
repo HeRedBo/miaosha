@@ -50,7 +50,16 @@ namespace model;
          }
          return $this->getDb()->query($sql, $params);
      }
-
+    
+     public function changeLeftNum($id, $num)
+     {
+         $params = [
+             'id' => $id
+         ];
+         $sql = "UPDATE `" .$this->table. "` SET num_left =num_left". ($num >0 ? '+' : '') . "{$num} 
+         WHERE id=:id";
+         return $this->getDb()->query($sql, $params);
+     }
 
 
  }

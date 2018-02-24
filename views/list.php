@@ -147,10 +147,15 @@
         })
         .always(function() {
             console.log("complete");
-        });
-        
+        });   
     }
     
+    // 加入购物车
+    function addCard(aid, goods_id)
+    {
+        $.cookie('mycarts_' + goods_id, aid);
+        alert('成功加入购物车')
+    }
 <?php endif ?>
 
 </script>
