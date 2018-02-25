@@ -54,7 +54,7 @@ if($action)
 else
 {
     $trade_model->sys_status = 2;
-    $trade_model->time_cancel = $now;
+    $trade_model->time_pay = $now;
     $result = "订单支付";
 }
 

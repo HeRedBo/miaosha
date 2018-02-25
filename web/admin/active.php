@@ -8,7 +8,6 @@ include 'init.php';
 $refer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '/admin';
 $TEMPLATE['refer'] = $refer;
 $TEMPLATE['type']  = 'active';
-$TEMPLATE['pageTitle']  = 'active';
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
 
@@ -79,7 +78,49 @@ else if ('save' == $action)
 else if ('delete' === $action) // 下线
 {
 	$id = getReqInt('id','get',0);
+    $ok = false;
+    if($id)
+    {
+        $active_model->id = $id;
+        $active_model->sys_status = 2;
+        $active_model->sys_lastmodify = time();
+        $ok = $active_model->save($id);
+    }
+    if($ok)
+    {
+        redirect($refer);
+    }
+    else
+    {
+        show_result("下线时候出现错误", $refer);
+    }
 }
+else if ('reset' == $action) // 上线
+{
+    $id  = getReqInt('id','get',0);
+    $ok = false;
+    if($id)
+    {
+        $active_model->id = $id;
+        $active_model->sys_status = 1;
+        $active_model->sys_lastmodify = time();
+        $ok = $active_model->save($id);
+    }
+    if($ok)
+    {
+        redirect($refer);
+    }
+    else
+    {
+        show_result("上线时候出现错误", $refer);
+    }
+}
+else
+{
+    echo 'error active action';
+}
+
+
 
 
 

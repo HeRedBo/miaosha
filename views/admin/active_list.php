@@ -25,11 +25,11 @@
 						<td><?php echo date("Y-m-d H:i:s", $data['time_end']) ?> </td>
 						<td><?php echo $arr_active_status[$data['sys_status']] ?></td>
 						<td>
-							<a href="?action=edit&id<?php echo $data['id'];  ?>">编辑</a>
+							<a href="?action=edit&id=<?php echo $data['id'];  ?>">编辑</a>
 							<?php if ($data['sys_status'] === '1'): ?>
-							| <a href="?action&delete&id=<?php  $data['id']; ?>">下线</a>
+							| <a href="?action=delete&id=<?php echo $data['id']; ?>">下线</a>
 							<?php else: ?>
-							| <a href="?action&reset&id=<?php  $data['id']; ?>">上线</a>
+							| <a href="?action=reset&id=<?php echo $data['id']; ?>">上线</a>
 							<?php endif ?>
 						</td>
 					</tr>

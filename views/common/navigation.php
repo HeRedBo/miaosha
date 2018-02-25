@@ -4,7 +4,13 @@
         <a href="/list.php" class="brand" _target="_self">
             首页
         </a>
-        <ul>
+        <ul class="nav">
+            <li <?php if ($TEMPLATE['type'] == 'trade'){?>class="active"<?php }?> >
+                <a href="/trade.php" target="_self">我的订单</a>
+            </li>
+            <li <?php if ($TEMPLATE['type'] == 'cart'){?>class="active"<?php }?>>
+                <a href="/cart.php" target="_self">购物车</a>
+            </li>
         </ul>
         <ul class="nav pull-right">
             <li>

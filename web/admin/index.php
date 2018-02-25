@@ -26,7 +26,8 @@ include 'init.php';
 	<div class="container">
 		<center>
 			<a href="active.php" class="btn" >活动管理</a>
-		</center>	
+			<a href="goods.php" class="btn" >商品管理</a>
+		</center>
 	</div>
 </body>
 </html>
