@@ -20,7 +20,7 @@
 			 	商品： <span><?php echo $goods['title']; ?></span><br>
 			 	价格： <span><?php echo $goods['price_discount']; ?></span><br>
 				原价： <span style="text-decoration:line-through">
-					<?php echo $goods['price_discount']; ?>
+					<?php echo $goods['price_normal']; ?>
 				</span><br>
 				数量： <span><?php echo $num; ?></span>
 			 </div>

@@ -8,7 +8,6 @@ include  'init.php';
 
 $TEMPLATE['type'] = 'buy';
 $TEMPLATE['pageTitle'] = '抢购';
-
 // 参数处理
 $active_id     = getReqInt('active_id');
 $goods_id      = getReqInt('goods_id');
@@ -18,6 +17,7 @@ $question_sign = $_POST['question_sign'];
 $ask           = $_POST['ask'];
 $answer        = $_POST['answer'];
 $action        = isset($_POST['action']) ? $_POST['action'] : false;
+
 
 if('buy_num' == $action)
 {
@@ -57,7 +57,8 @@ if(!$active_id || !$goods_id || !$goods_num || !$question_sign)
 $status_check = false;
 $str_sign_data  = unSignQuestion($sign_data);
 $sign_data_info = json_decode(trim($str_sign_data),true);
-// 时间不能超过五分钟 IP地址保存不变
+
+// 时间不能超过五分钟 IP地址和用户保持不变
 if($sign_data_info && $sign_data_info['now'] < $now
     && $sign_data_info['now'] > $now - 3000
     && $sign_data_info['ip'] == $client_ip
@@ -102,13 +103,42 @@ if(!$question_check)
     show_result($result);
 }
 
-// 统一格式化单商品 组合商品的数据结构
+// 统一格式化单商品 组合商品的数据结构 后期优化 相关数据读缓存
+$nums = $goods = [];
+if('buy_cart' != $action)
+{
+   $nums = [$goods_num];
+   $goods = [$goods_id];
+}
+else
+{
+   $nums = $_POST['num'];
+   $goods = $_POST['goods'];
+}
+
+$redis_obj =  \common\Datasource::getRedis('instance1');
+
+$d_list = [
+    'miaosha:string:u_trade_'. $uid. '_'. $active_id,
+    'miaosha:string:st_a_'. $active_id
+];
+
+/**
+ * 从缓冲中读取商品的信息 商品信息使用哈希存储
+ *
+ * id, sys_status number num_left
+ * price_normal price_discount
+ */
+foreach ($goods as $i => $goods_id)
+{
+    $d_list[] = 'miaosha:string:info_g_'. $goods_id;
+}
+$data_list = $redis_obj->mget($d_list);
+
 /**
  * 4 校验用户是否已经购买
  */
-$trade_model = new \model\Trade();
-$trade_info = $trade_model->getUserTrade($uid, $active_id);
-if($trade_info)
+if($data_list[0])
 {
     $result = [
         'error_no' => '104',
@@ -117,14 +147,37 @@ if($trade_info)
     show_result($result);
 }
 
+
+
+
+/**
+ * 4 校验用户是否已经购买
+ */
+//$trade_model = new \model\Trade();
+//$trade_info = $trade_model->getUserTrade($uid, $active_id);
+//if($trade_info)
+//{
+//    $result = [
+//        'error_no' => '104',
+//        'error_msg' => '请不要重复提交订单'
+//    ];
+//    show_result($result);
+//}
+
 /**
  *  5、校验活活动信息 商品信息是否正常
  */
-$active_model = new \model\Active();
-$active_info = $active_model->get($active_id);
+//$active_model = new \model\Active();
+//$active_info = $active_model->get($active_id);
 
+// 商品信息直接从 redis 缓存中读取
+$active_info = $data_list[1];
+if($active_info)
+{
+    $active_info = json_decode($active_info,1);
+}
 if(
-    !$active_info || $active_info['sys_status'] !== '1'
+    !$active_info || $active_info['sys_status'] != 1
     || $active_info['time_begin'] > $now
     || $active_info['time_end'] < $now
 )
@@ -135,74 +188,79 @@ if(
     ];
     show_result($result);
 }
-
-//$nums = $goods = [];
-//if('buy_cart' == $action)
-//{
-//    $nums = [$goods_num];
-//    $goods = $_POST['goods'];
-//}
-//else
-//{
-//    $num = $_POST['num'];
-//    $goods = $_POST['goods'];
-//}
+unset($data_list[0]);
+unset($data_list[1]);
 
 $num_total = $price_total = $price_discount = 0;
 $trade_goods = [];
+
 $goods_model = new \model\Goods();
-$goods_info  = $goods_model->get($goods_id);
-// 6、商品信息校验 状态校验
-if(!$goods_info || $goods_info['sys_status'] !== '1')
-{
-    $result = [
-        'error_no' => '106',
-        'error_msg' => '商品信息异常'
-    ];
-    show_result($result);
-}
-// 7、商品购买数量限制
-if($goods_num > $goods_info['num_user'])
-{
-    $result = [
-        'error_no' => '107',
-        'error_msg' => '超过商品数量的限制'
-    ];
-    show_result($result);
-}
-// 8、商品剩余判断
-if($goods_info['num_left'] < $goods_num)
-{
-    $result = [
-        'error_no' => '108',
-        'error_msg' => '商品库存不足'
-    ];
-    show_result($result);
-}
-// 9、减库存
-$ok = false;
-$ok = $goods_model->changeLeftNum($goods_id, $goods_num);
-if(!$ok)
-{
-    $result = array('error_no' => '109', 'error_msg' => '商品剩余数量不足');
-    show_result($result);
-}
+//$goods_info  = $goods_model->get($goods_id);
 
-// 10.1 创建订单信息
-$trade_goods[] = [
-    'goods_info' => $goods_info,
-    'goods_num'  => $goods_num
-];
-$num_total      = $goods_num;
-$price_total    = $goods_info['price_normal'] * $goods_num;
-$price_discount = $goods_info['price_discount'] * $goods_num;
+foreach ($data_list as $i =>  $goods_info)
+{
+    $goods_num = $nums[$i -2];
+    $goods_info = json_decode($goods_info,1);
+    // 6、商品信息校验 状态校验
+    if(!$goods_info || $goods_info['sys_status'] !=1)
+    {
+        $result = [
+            'error_no' => '106',
+            'error_msg' => '商品信息异常'
+        ];
+        show_result($result);
+    }
+   // 7、商品购买数量限制
+    if($goods_num > $goods_info['num_user'])
+    {
+        $result = [
+            'error_no' => '107',
+            'error_msg' => '超过商品数量的限制'
+        ];
+        show_result($result);
+    }
 
+    // 8、商品剩余判断
+    if($goods_info['num_left'] < $goods_num)
+    {
+        $result = [
+            'error_no' => '108',
+            'error_msg' => '商品库存不足'
+        ];
+        show_result($result);
+    }
+
+    // 9、减库存 ① 减少redis的缓存收 ②减少数据库库存
+    $left  = $goods_model->changeLeftNumCached($goods_id, 0- $goods_num);
+
+    $ok = false;
+    if($left >= 0)
+    {
+        // 减少数据库数据库存
+        $ok = $goods_model->changeLeftNum($goods_id, 0 - $goods_num);
+    }
+    else
+    {
+        $result = array('error_no' => '109', 'error_msg' => '商品剩余数量不足');
+        show_result($result);
+    }
+
+    // 10.1 创建订单信息
+    $trade_goods[] = [
+        'goods_info' => $goods_info,
+        'goods_num'  => $goods_num
+    ];
+
+    $num_total      = $goods_num;
+    $price_total    = $goods_info['price_normal'] * $goods_num;
+    $price_discount = $goods_info['price_discount'] * $goods_num;
+}
 // 10.2 保存订单信息
 $trade_info = [
     'active_id' => $active_id,
     'goods_id' => $goods_id,
     'num_total' => $num_total,
-    'num_goods' => count($goods_info),
+    'num_goods' => count($goods),
     'price_total' => $price_total,
     'price_discount' => $price_discount,
     'goods_info' =>  json_encode($trade_goods),
@@ -213,12 +271,15 @@ $trade_info = [
     'sys_status' => 1,
     'sys_ip' => $client_ip,
 ];
-
+$trade_model = new \model\Trade();
 foreach ($trade_info as $k => $v)
 {
     $trade_model-> $k  = $v;
 }
 $trade_id = $trade_model->create();
+// 秒杀成功 标识一下该用户已经参加过该活动:
+$key = 'miaosha:string:'. $uid. '_'. $active_id;
+$redis_obj->set($key, 1);
 // 11 返回提示信息
 $result = '秒杀成功，请尽快去支付';
 show_result($result);

@@ -59,16 +59,30 @@ else if ('save' == $action)
 	{
 		$active_model->sys_lastmodify = time();
 		$ok = $active_model->save();
+        $id = $info['id'];
 	}
 	else
 	{
 		$active_model->sys_lastmodify = $active_model->sys_dateline  = time();
 		$active_model->sys_ip = getClientIp();
         $ok = $active_model->create();
+        $id = $ok;
 	}
 	if($ok)
 	{
-		redirect('active.php');
+        // 增加与修改的时候需要将活动信息保存的Redis中
+
+        $now = time();
+        if($info['time_end'] > $now)
+        {
+            $redis_obj =  \common\Datasource::getRedis('instance1');
+            // 设置Redis key  : miaosha:string:st_a_ +  活动ID
+            $remain_time =  $info['time_end'] - $now;
+            $redis_key = 'miaosha:string:st_a_'. $id;
+            $info = json_encode($info);
+            $redis_obj->set($redis_key, $info, $remain_time);
+        }
+        redirect('active.php');
 	}
 	else
 	{
@@ -88,6 +102,18 @@ else if ('delete' === $action) // 下线
     }
     if($ok)
     {
+        $redis_obj =  \common\Datasource::getRedis('instance1');
+        // 设置Redis key  : miaosha:string:info_g_+  互动ID
+        $redis_key = 'miaosha:string:st_a_'. $id;
+        $info = $redis_obj->get($redis_key);
+        if($info)
+        {
+            $info = json_decode($info,1);
+            $info['sys_status'] = 2;
+            $info['sys_lastmodify'] = time();
+            $info = json_encode($info);
+            $redis_obj->set($redis_key, $info);
+        }
         redirect($refer);
     }
     else
@@ -108,6 +134,18 @@ else if ('reset' == $action) // 上线
     }
     if($ok)
     {
+        $redis_obj =  \common\Datasource::getRedis('instance1');
+        // 设置Redis key  : miaosha:string:info_g_+  互动ID
+        $redis_key = 'miaosha:string:st_a_'. $id;
+        $info = $redis_obj->get($redis_key);
+        if($info)
+        {
+            $info = json_decode($info,1);
+            $info['sys_status'] = 1;
+            $info['sys_lastmodify'] = time();
+            $info = json_encode($info);
+            $redis_obj->set($redis_key, $info);
+        }
         redirect($refer);
     }
     else

@@ -61,5 +61,27 @@ namespace model;
          return $this->getDb()->query($sql, $params);
      }
 
-
+     /**
+      * 从缓存中更新商品的剩余数量
+      *
+      * @param $id
+      * @param $num
+      * @return bool
+      */
+     public function  changeLeftNumCached($id, $num)
+     {
+         $key = 'miaosha:string:info_g_'. $id;
+         $redis_obj = \common\Datasource::getRedis('instance1');
+         $info = $redis_obj->get($key);
+         if($info)
+         {
+             $info = json_decode($info, 1);
+             $info['num_left'] = $info['num_left'] + $num;
+             $left = $info['num_left'];
+             $info = json_encode($info);
+             $redis_obj->set($key, $info);
+             return $left;
+         }
+         return 0;
+     }
  }

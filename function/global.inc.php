@@ -81,9 +81,11 @@ class SYSCore
 SYSCore::registerAutoload();
 
 /**************** Debug Begin  ***************/
+
 if(defined('_IS_DEBUG') && _IS_DEBUG || (isset($_REQUEST['__debug']) && strpos($_REQUEST['__debug'],_DEBUG_PASS) !== false))
 {
-    $debug_level = intval(substr($_REQUEST['__debug'], -1));
+    $debug_level = (isset($_REQUEST['__debug']) && strpos($_REQUEST['__debug'],_DEBUG_PASS) !== false) ? intval(substr($_REQUEST['__debug'], -1)) : 1;
+    // $debug_level = intval(substr($_REQUEST['__debug'], -1));
     if($debug_level > 0 )
     {
         define('DEBUG_LEVEL', $debug_level);
@@ -97,10 +99,10 @@ if(defined('_IS_DEBUG') && _IS_DEBUG || (isset($_REQUEST['__debug']) && strpos($
     // 设置错误级
     error_reporting(_ERROR_LEVEL);
     // Debug开关打开
-    Common\DebugLog::_init();
+    common\DebugLog::_init();
 
     // 注册shutdown 函数用来Debug显示;
-    register_shutdown_function(['Common\DebugLog','_show']);
+    register_shutdown_function(['common\DebugLog','_show']);
 }
 else
 {

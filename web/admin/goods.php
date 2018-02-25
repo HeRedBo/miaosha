@@ -72,16 +72,23 @@ else if('save' == $action)
     {
         $goods_model->sys_lastmodify = time();
 		$ok = $goods_model->save();
+        $id = $info['id'];
     }
     else
     {
         $active_model->sys_lastmodify = $active_model->sys_dateline  = time();
         $active_model->sys_ip = getClientIp();
         $ok = $active_model->create();
+        $id = $ok;
     }
-
     if($ok)
     {
+        // 将商品保存的Redis 数据缓存中 方便前端数据读取
+        $redis_obj =  \common\Datasource::getRedis('instance1');
+        // 设置Redis key  : miaosha:string:info_g_+  互动ID
+        $redis_key = 'miaosha:string:info_g_'. $id;
+        $info = json_encode($info);
+        $redis_obj->set($redis_key, $info);
         redirect('goods.php');
     }
     else
@@ -99,9 +106,25 @@ else if ('delete' == $action)
         $goods_model->sys_status = 2;
         $goods_model->sys_lastmodify = time();
         $ok = $goods_model->save($id);
+
     }
     if($ok)
     {
+        // 修改redis 缓存中的存储的商品数据
+        // 将商品保存的Redis 数据缓存中 方便前端数据读取
+        $redis_obj =  \common\Datasource::getRedis('instance1');
+        // 设置Redis key  : miaosha:string:info_g_+  互动ID
+        $redis_key = 'miaosha:string:info_g_'. $id;
+        $info = $redis_obj->get($redis_key);
+        if($info)
+        {
+            $info = json_decode($info,1);
+            $info['sys_status'] = 2;
+            $info['sys_lastmodify'] = time();
+            $info = json_encode($info);
+            $redis_obj->set($redis_key, $info);
+        }
+
         redirect($refer);
     }
     else
@@ -122,6 +145,21 @@ else if ('delete' == $action)
     }
     if($ok)
     {
+        // 修改redis 缓存中的存储的商品数据
+        // 将商品保存的Redis 数据缓存中 方便前端数据读取
+        $redis_obj =  \common\Datasource::getRedis('instance1');
+        // 设置Redis key  : miaosha:string:info_g_+  互动ID
+        $redis_key = 'miaosha:string:info_g_'. $id;
+        $info = $redis_obj->get($redis_key);
+        if($info)
+        {
+            $info = json_decode($info,1);
+            $info['sys_status'] = 1;
+            $info['sys_lastmodify'] = time();
+            $info = json_encode($info);
+            $redis_obj->set($redis_key, $info);
+        }
+
         redirect($refer);
     }
     else
