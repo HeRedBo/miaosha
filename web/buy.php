@@ -196,12 +196,12 @@ $trade_goods = [];
 
 $goods_model = new \model\Goods();
 //$goods_info  = $goods_model->get($goods_id);
-
 foreach ($data_list as $i =>  $goods_info)
 {
     $goods_num = $nums[$i -2];
     $goods_info = json_decode($goods_info,1);
-    // 6、商品信息校验 状态校验
+ 
+   // 6、商品信息校验 状态校验
     if(!$goods_info || $goods_info['sys_status'] !=1)
     {
         $result = [
@@ -278,8 +278,11 @@ foreach ($trade_info as $k => $v)
 }
 $trade_id = $trade_model->create();
 // 秒杀成功 标识一下该用户已经参加过该活动:
-$key = 'miaosha:string:'. $uid. '_'. $active_id;
-$redis_obj->set($key, 1);
+if ($trade_id) {
+    $key = 'miaosha:string:u_trade_'. $uid. '_'. $active_id;
+    $redis_obj->set($key, 1,86400);
+}
+
 // 11 返回提示信息
 $result = '秒杀成功，请尽快去支付';
 show_result($result);

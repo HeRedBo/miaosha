@@ -7,7 +7,7 @@ $active_model = new \model\Active();
 $goods_model  = new \model\Goods();
 
 $list_active  = $active_model->getListInUse();
-$lis_active_goods = [];
+$list_active_goods = [];
 foreach ($list_active as $data)
 {
     $aid                = $data['id'];

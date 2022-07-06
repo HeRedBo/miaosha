@@ -90,12 +90,14 @@
     // 校验活动 商品状态
     function check_status(aid, goods_id)
     {
+        var status_url = '/astatus/' + aid + '_' + goods_id + '.js';
          $.ajax({
-             url: '/astatus.php',
+            // url: '/astatus.php',
+             url: status_url,
              type: 'GET',
              dataType: 'json',
              async:true, 
-             data: {param1: 'value1'},
+            // data: {aid: goods_id,gid:goods_id},
              success : function(data) 
              {
                 if (data['error_no']) 
